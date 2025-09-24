@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { simpleChat, type SimpleChatMessage } from "@/lib/simple-bedrock";
+import { bedrockService, type ChatMessage } from "@/lib/bedrock-service";
 import { lexService } from "@/lib/lex-service";
 import { type PromptType } from "@/lib/aws-config";
 
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       temperature,
       maxTokens,
     }: {
-      messages: SimpleChatMessage[];
+      messages: ChatMessage[];
       promptType?: PromptType;
       useLex?: boolean;
       temperature?: number;
@@ -34,11 +34,18 @@ export async function POST(request: NextRequest) {
     if (useLex && lexService.isConfigured()) {
       try {
         lexResponse = await lexService.recognizeText(lastMessage.content);
+        console.log("Lex response:", lexResponse);
 
-        // If Lex has a direct response, we might use it or enhance it with Bedrock
-        if (lexResponse.message) {
-          // You can decide here whether to use Lex response directly or enhance with Bedrock
-          console.log("Lex intent detected:", lexResponse.intent);
+        // If Lex has a direct response from knowledge base, use it
+        if (lexResponse.message && lexResponse.message.trim()) {
+          console.log("Using Lex knowledge base response:", lexResponse.message);
+          return NextResponse.json({
+            content: lexResponse.message,
+            usage: { input_tokens: 0, output_tokens: 0 }, // Lex doesn't provide token usage
+            lexIntent: lexResponse.intent,
+            sessionId: lexService.getCurrentSessionId(),
+            source: "lex"
+          });
         }
       } catch (error) {
         console.warn(
@@ -48,14 +55,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get response from simple chat (demo mode)
-    const chatResponse = await simpleChat(messages, promptType);
+    // Get response from Bedrock service (will fallback to demo mode if not configured)
+    const chatResponse = await bedrockService.chat(messages, promptType, {
+      temperature,
+      maxTokens,
+    });
 
     return NextResponse.json({
       content: chatResponse.content,
       usage: chatResponse.usage,
       lexIntent: lexResponse?.intent,
       sessionId: lexService.getCurrentSessionId(),
+      source: "bedrock"
     });
   } catch (error) {
     console.error("Chat API error:", error);

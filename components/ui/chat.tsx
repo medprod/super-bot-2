@@ -33,7 +33,7 @@ interface ChatPropsBase {
     messageId: string,
     rating: "thumbs-up" | "thumbs-down"
   ) => void
-  setMessages?: (messages: any[]) => void
+  setMessages?: (messages: Message[]) => void
   transcribeAudio?: (blob: Blob) => Promise<string>
 }
 
@@ -113,7 +113,7 @@ export function Chat({
     }
 
     if (lastAssistantMessage.parts && lastAssistantMessage.parts.length > 0) {
-      const updatedParts = lastAssistantMessage.parts.map((part: any) => {
+      const updatedParts = lastAssistantMessage.parts.map((part) => {
         if (
           part.type === "tool-invocation" &&
           part.toolInvocation &&
@@ -138,7 +138,8 @@ export function Chat({
       if (needsUpdate) {
         updatedMessage = {
           ...updatedMessage,
-          parts: updatedParts,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          parts: updatedParts as any,
         }
       }
     }
@@ -213,7 +214,6 @@ export function Chat({
 
       <ChatForm
         className="mt-auto"
-        isPending={isGenerating || isTyping}
         handleSubmit={handleSubmit}
       >
         {({ files, setFiles }) => (
@@ -293,7 +293,6 @@ ChatContainer.displayName = "ChatContainer"
 
 interface ChatFormProps {
   className?: string
-  isPending: boolean
   handleSubmit: (
     event?: { preventDefault?: () => void },
     options?: { experimental_attachments?: FileList }
@@ -305,7 +304,7 @@ interface ChatFormProps {
 }
 
 export const ChatForm = forwardRef<HTMLFormElement, ChatFormProps>(
-  ({ children, handleSubmit, isPending, className }, ref) => {
+  ({ children, handleSubmit, className }, ref) => {
     const [files, setFiles] = useState<File[] | null>(null)
 
     const onSubmit = (event: React.FormEvent) => {

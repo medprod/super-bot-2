@@ -104,9 +104,18 @@ class LexService {
 
   private async streamToBuffer(stream: ReadableStream): Promise<Buffer> {
     const chunks: Uint8Array[] = [];
-    for await (const chunk of stream) {
-      chunks.push(chunk);
+    const reader = stream.getReader();
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+    } finally {
+      reader.releaseLock();
     }
+    
     return Buffer.concat(chunks);
   }
 

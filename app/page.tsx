@@ -14,7 +14,6 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<PromptType>("default");
-  const [useLex, setUseLex] = useState(false);
   const [abortController, setAbortController] =
     useState<AbortController | null>(null);
   const [isAwsConfigured, setIsAwsConfigured] = useState(false);
@@ -57,7 +56,7 @@ export default function Home() {
               content: m.content,
             })),
             promptType: selectedPrompt,
-            useLex,
+            useLex: true,
             temperature: 0.7,
             maxTokens: 4096,
           }),
@@ -69,6 +68,10 @@ export default function Home() {
         }
 
         const data = await response.json();
+        
+        // Debug logging
+        console.log("API Response:", data);
+        console.log("Response source:", data.source);
 
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
@@ -105,7 +108,7 @@ export default function Home() {
         setAbortController(null);
       }
     },
-    [input, messages, selectedPrompt, useLex, isLoading]
+    [input, messages, selectedPrompt, isLoading]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -121,25 +124,93 @@ export default function Home() {
   }, [abortController]);
 
   const append = useCallback(
-    (message: { role: "user"; content: string }) => {
+    async (message: { role: "user"; content: string }) => {
       const newMessage: Message = {
         id: Date.now().toString(),
         role: message.role,
         content: message.content,
         createdAt: new Date(),
       };
+      
+      // Add user message immediately
       setMessages((prev) => [...prev, newMessage]);
+      setInput("");
+      setIsLoading(true);
 
-      // Auto-submit the appended message
-      setInput(message.content);
-      setTimeout(() => handleSubmit(), 100);
+      // Create abort controller for this request
+      const controller = new AbortController();
+      setAbortController(controller);
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messages: [...messages, newMessage].map((m) => ({
+              role: m.role,
+              content: m.content,
+            })),
+            promptType: selectedPrompt,
+            useLex: true,
+            temperature: 0.7,
+            maxTokens: 4096,
+          }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Debug logging
+        console.log("API Response:", data);
+        console.log("Response source:", data.source);
+
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: data.content,
+          createdAt: new Date(),
+        };
+
+        setMessages((prev) => [...prev, assistantMessage]);
+
+        // Log Lex intent if available
+        if (data.lexIntent) {
+          console.log("Detected intent:", data.lexIntent);
+        }
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === "AbortError") {
+          console.log("Request was aborted");
+          return;
+        }
+
+        console.error("Chat error:", error);
+
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content:
+            "Sorry, I encountered an error while processing your request. Please try again.",
+          createdAt: new Date(),
+        };
+
+        setMessages((prev) => [...prev, errorMessage]);
+      } finally {
+        setIsLoading(false);
+        setAbortController(null);
+      }
     },
-    [handleSubmit]
+    [messages, selectedPrompt]
   );
 
   const transcribeAudio = async (blob: Blob): Promise<string> => {
     try {
-      if (useLex && lexService.isConfigured()) {
+      if (lexService.isConfigured()) {
         const lexResponse = await lexService.recognizeAudio(blob);
         return lexResponse.message || "Could not transcribe audio";
       } else {
@@ -163,10 +234,15 @@ export default function Home() {
       {/* Header with prompt selector and controls */}
       <div className="flex items-center gap-4 pb-4 border-b">
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold">AI Chat Assistant</h1>
+          <h1 className="text-2xl font-semibold">SUPERBot</h1>
           <p className="text-sm text-muted-foreground">
             {isAwsConfigured ? (
-              <>Powered by AWS Bedrock {useLex && "and Lex"}</>
+              <>
+                Your intelligent HR assistant for company policies, benefits, and employee support
+                <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                  HR Bot Active
+                </span>
+              </>
             ) : (
               <>🚀 Demo Mode - Configure AWS for full functionality</>
             )}
@@ -174,16 +250,6 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={useLex}
-              onChange={(e) => setUseLex(e.target.checked)}
-              className="rounded"
-            />
-            Use Lex NLU
-          </label>
-
           <button
             onClick={clearChat}
             className="px-3 py-1 text-sm border rounded hover:bg-muted"
@@ -213,11 +279,10 @@ export default function Home() {
         setMessages={setMessages}
         transcribeAudio={transcribeAudio}
         suggestions={[
-          "Tell me a funny joke",
-          "Help me write a professional email",
-          "Explain quantum computing simply",
-          "What are the symptoms of a cold?",
-          "Give me creative writing ideas",
+          "What are the company holidays?",
+          "Can I use paid time off when I am sick?",
+          "When do I get paid?",
+          "How do we sign up for benefits?",
         ]}
       />
     </div>
