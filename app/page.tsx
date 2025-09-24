@@ -1,11 +1,10 @@
 "use client";
 
 import { Chat } from "@/components/ui/chat";
-import { PromptSelector } from "@/components/ui/prompt-selector";
+import Image from "next/image";
 
 import { useState, useCallback, useEffect } from "react";
 import { type Message } from "@/components/ui/chat-message";
-import { type PromptType } from "@/lib/aws-config";
 import { lexService } from "@/lib/lex-service";
 import { bedrockService } from "@/lib/bedrock-service";
 
@@ -13,7 +12,6 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedPrompt, setSelectedPrompt] = useState<PromptType>("default");
   const [abortController, setAbortController] =
     useState<AbortController | null>(null);
   const [isAwsConfigured, setIsAwsConfigured] = useState(false);
@@ -55,7 +53,7 @@ export default function Home() {
               role: m.role,
               content: m.content,
             })),
-            promptType: selectedPrompt,
+            promptType: "default",
             useLex: true,
             temperature: 0.7,
             maxTokens: 4096,
@@ -108,7 +106,7 @@ export default function Home() {
         setAbortController(null);
       }
     },
-    [input, messages, selectedPrompt, isLoading]
+    [input, messages, isLoading]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -152,7 +150,7 @@ export default function Home() {
               role: m.role,
               content: m.content,
             })),
-            promptType: selectedPrompt,
+            promptType: "default",
             useLex: true,
             temperature: 0.7,
             maxTokens: 4096,
@@ -205,7 +203,7 @@ export default function Home() {
         setAbortController(null);
       }
     },
-    [messages, selectedPrompt]
+    [messages]
   );
 
   const transcribeAudio = async (blob: Blob): Promise<string> => {
@@ -233,21 +231,40 @@ export default function Home() {
     <div className="h-screen w-4/5 mx-auto flex flex-col py-10 gap-4">
       {/* Header with prompt selector and controls */}
       <div className="flex items-center gap-4 pb-4 border-b">
-        <div className="flex-1">
-          <h1 className="text-2xl font-semibold">SUPERBot</h1>
-          <p className="text-sm text-muted-foreground">
-            {isAwsConfigured ? (
-              <>
-                Your intelligent HR assistant for company policies, benefits, and employee support
-                <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                  HR Bot Active
-                </span>
-              </>
-            ) : (
-              <>🚀 Demo Mode - Configure AWS for full functionality</>
-            )}
-          </p>
+        {/* Logo and Title */}
+        <div className="flex items-center gap-4">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 rounded-full blur-sm group-hover:blur-md transition-all duration-300"></div>
+            <Image 
+              src="/logo.jpg" 
+              alt="SUPERBot Logo" 
+              width={56}
+              height={56}
+              className="relative w-14 h-14 rounded-full object-cover border-2 border-primary/30 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+            />
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse shadow-sm"></div>
+            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white opacity-60"></div>
+          </div>
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent tracking-tight">
+              SUPER Bot
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {isAwsConfigured ? (
+                <>
+                  Your intelligent HR assistant for company policies, benefits, and employee support
+                  <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">
+                    HR Bot Active
+                  </span>
+                </>
+              ) : (
+                <>Policy access shouldn&apos;t be a scavenger hunt—it should be a conversation.</>
+              )}
+            </p>
+          </div>
         </div>
+
+        <div className="flex-1"></div>
 
         <div className="flex items-center gap-2">
           <button
@@ -258,12 +275,6 @@ export default function Home() {
             Clear Chat
           </button>
         </div>
-
-        <PromptSelector
-          selectedPrompt={selectedPrompt}
-          onPromptChange={setSelectedPrompt}
-          className="w-80"
-        />
       </div>
 
       {/* Chat interface */}
