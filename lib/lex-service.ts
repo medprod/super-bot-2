@@ -130,23 +130,31 @@ class LexService {
 
   // Helper method to check if Lex is properly configured
   isConfigured(): boolean {
-    const isConfigured = !!(
-      lexConfig.botId &&
-      lexConfig.botAliasId &&
-      awsConfig.credentials.accessKeyId
+    const hasBotIds = !!(lexConfig.botId && lexConfig.botAliasId);
+    const hasKeys = !!(
+      awsConfig.credentials.accessKeyId &&
+      awsConfig.credentials.secretAccessKey
     );
-    
+    const needsSession = awsConfig.credentials.accessKeyId?.startsWith("ASIA");
+    const hasSession = !!awsConfig.credentials.sessionToken;
+    const credsValid = hasKeys && (!needsSession || hasSession);
+
+    const isConfigured = hasBotIds && credsValid;
+
     // Debug logging
     console.log("🔧 Lex Configuration Check:", {
       hasBotId: !!lexConfig.botId,
       hasBotAliasId: !!lexConfig.botAliasId,
       hasAccessKey: !!awsConfig.credentials.accessKeyId,
       hasSecretKey: !!awsConfig.credentials.secretAccessKey,
+      hasSessionToken: !!awsConfig.credentials.sessionToken,
+      needsSession,
+      credsValid,
       isConfigured,
       botId: lexConfig.botId ? `${lexConfig.botId.substring(0, 4)}...` : "Not set",
       botAliasId: lexConfig.botAliasId ? `${lexConfig.botAliasId.substring(0, 4)}...` : "Not set",
     });
-    
+
     return isConfigured;
   }
 }

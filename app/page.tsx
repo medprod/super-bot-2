@@ -236,7 +236,7 @@ export default function Home() {
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 rounded-full blur-sm group-hover:blur-md transition-all duration-300"></div>
             <Image 
-              src="/logo.jpg" 
+              src="/SuperBot-logo.png" 
               alt="SUPERBot Logo" 
               width={56}
               height={56}
