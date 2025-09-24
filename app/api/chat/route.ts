@@ -29,6 +29,15 @@ export async function POST(request: NextRequest) {
 
     const lastMessage = messages[messages.length - 1];
 
+    // Debug logging for environment
+    console.log("🔍 Chat API Debug Info:", {
+      useLex,
+      isLexConfigured: lexService.isConfigured(),
+      isBedrockConfigured: bedrockService.isConfigured(),
+      nodeEnv: process.env.NODE_ENV,
+      vercelEnv: process.env.VERCEL_ENV,
+    });
+
     // If using Lex, first process through Lex for intent recognition
     let lexResponse = null;
     if (useLex && lexService.isConfigured()) {
