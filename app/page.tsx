@@ -230,7 +230,7 @@ export default function Home() {
   return (
     <div className="h-screen w-4/5 mx-auto flex flex-col py-10 gap-4">
       {/* Header with prompt selector and controls */}
-      <div className="flex items-center gap-4 pb-4 border-b">
+      <div className="flex items-center gap-4 pb-4 border-b bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 rounded-xl p-6 shadow-lg border-2 border-blue-200/60 backdrop-blur-sm">
         {/* Logo and Title */}
         <div className="flex items-center gap-4">
           <div className="relative group">
@@ -258,7 +258,7 @@ export default function Home() {
                   </span>
                 </>
               ) : (
-                <>Policy access shouldn&apos;t be a scavenger hunt—it should be a conversation.</>
+                <><strong>Policy access shouldn&apos;t be a scavenger hunt—it should be a conversation.</strong></>
               )}
             </p>
           </div>
@@ -269,7 +269,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <button
             onClick={clearChat}
-            className="px-3 py-1 text-sm border rounded hover:bg-muted"
+            className="px-3 py-1 text-sm border rounded bg-white hover:bg-gray-50 shadow-sm"
             disabled={isLoading}
           >
             Clear Chat
